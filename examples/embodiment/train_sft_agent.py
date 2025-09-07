@@ -28,7 +28,7 @@ mp.set_start_method("spawn", force=True)
     version_base="1.1", config_path="config", config_name="openvla_sft"
 )
 def main(cfg) -> None:
-    cfg = validate_cfg(cfg)
+    # cfg = validate_cfg(cfg)
 
     cluster = Cluster(
         num_nodes=cfg.cluster.num_nodes, num_gpus_per_node=cfg.cluster.num_gpus_per_node
