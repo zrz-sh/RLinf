@@ -23,7 +23,7 @@ runner:
 # Actor (SFT Model) Configuration
 actor:
   group_name: sft_actor
-  checkpoint_load_path: openvla/openvla-7b  # Or path to local checkpoint
+  checkpoint_load_path: /mnt/public/xusi/models/openvla-7b  # Or path to local checkpoint
   # resume_from_checkpoint: ./logs/sft_training/checkpoints/epoch_5/checkpoint.pt  # Uncomment to resume training
   
   # Model Configuration
