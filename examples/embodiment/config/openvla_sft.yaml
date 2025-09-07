@@ -1,0 +1,94 @@
+# OpenVLA Supervised Fine-Tuning Configuration
+# Example configuration for training OpenVLA models on LeRobot datasets using SFT
+
+defaults:
+  - _self_
+
+# Cluster Configuration
+cluster:
+  num_nodes: 1
+  num_gpus_per_node: 1
+
+# Runner Configuration
+runner:
+  max_epochs: 10
+  estimated_steps_per_epoch: 1000  # Rough estimate, actual will be computed from dataset
+  save_interval: 2  # Save every 2 epochs
+  logger:
+    log_path: ./logs/sft_training
+    project_name: openvla_sft
+    experiment_name: lerobot_aloha
+    wandb_api_key: null  # Set your wandb API key if using wandb
+
+# Actor (SFT Model) Configuration
+actor:
+  group_name: sft_actor
+  checkpoint_load_path: openvla/openvla-7b  # Or path to local checkpoint
+  # resume_from_checkpoint: ./logs/sft_training/checkpoints/epoch_5/checkpoint.pt  # Uncomment to resume training
+  
+  # Model Configuration
+  model:
+    _target_: rlinf.models.embodiment.openvla_action_model.OpenVLAForRLActionPrediction
+    hidden_size: 4096
+    unnorm_key: null  # Will be inferred from dataset
+    vh_mode: false
+    action_dim: 7  # Depends on your robot/task
+    num_action_chunks: 10
+    policy_setup: null
+  
+  # Dataset Configuration
+  dataset:
+    repo_id: lerobot/aloha_sim_insertion_human_v0  # Change to your LeRobot dataset
+    action_horizon: 10
+    action_dim: 7
+    max_token_len: 256
+    batch_size: 4  # Adjust based on GPU memory
+    num_workers: 4
+  
+  # Training Configuration
+  grad_clip_norm: 1.0
+  enable_offload: false  # Set to true if GPU memory is limited
+  
+  # FSDP Configuration
+  fsdp_config:
+    sharding_strategy: FULL_SHARD
+    mixed_precision:
+      param_dtype: torch.bfloat16
+      reduce_dtype: torch.bfloat16
+      buffer_dtype: torch.bfloat16
+    
+  # Optimizer Configuration
+  optimizer:
+    _target_: torch.optim.AdamW
+    lr: 1e-5
+    weight_decay: 0.01
+    betas: [0.9, 0.999]
+  
+  # Learning Rate Scheduler Configuration
+  scheduler:
+    _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+    T_max: ${runner.max_epochs}
+    eta_min: 1e-6
+  
+  # Channel Configuration (for internal communication)
+  channel:
+    name: sft_actor_channel
+    queue_name: sft_actor_queue
+    queue_size: 10
+
+# Component Placement Configuration
+placement:
+  actor:
+    device_mesh: [0]  # Use GPU 0 for single-GPU training
+    strategy: auto
+  
+  # No rollout or env components needed for SFT
+  rollout: null
+  env: null
+
+# Hydra Configuration
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: true
