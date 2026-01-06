@@ -193,11 +193,11 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_robocasa",
-        model=pi0_config.Pi0Config(action_horizon=10),
+        model=pi0_config.Pi0Config(action_horizon=5),
         data=LeRobotRobocasaDataConfig(
-            repo_id="physical-intelligence/robocasa",
+            repo_id="RLinf/RLinf-Pi0-RoboCasa-OpenDrawer-Human-SFT",
             base_config=DataConfig(prompt_from_task=True),
-            assets=AssetsConfig(assets_dir="checkpoints/torch/pi0_robocasa/assets"),
+            assets=AssetsConfig(assets_dir="assets", asset_id="assets/pi0_robocasa_opendrawer_pytorch_2views/ZhaoRunyi/robocasa_opendrawer_human_lerobot"),
             extra_delta_transform=False,
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader(
