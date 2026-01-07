@@ -370,7 +370,7 @@ class OpenPi0ForRLActionPrediction(BasePolicy, PI0Pytorch):
         return actions, result
 
     @torch.no_grad()
-    def sample_actions_bak(
+    def sample_actions(
         self,
         observation: _model.Observation,
         noise=None,
@@ -490,65 +490,6 @@ class OpenPi0ForRLActionPrediction(BasePolicy, PI0Pytorch):
             "prev_logprobs": log_probs,
             "prev_values": values,
             "denoise_inds": denoise_inds,
-        }
-
-    @torch.no_grad()
-    def sample_actions(
-        self,
-        observation: _model.Observation,
-        noise=None,
-        mode="train",
-        compute_values=True, **kwargs) -> torch.Tensor:
-        """Do a full inference forward and compute the action (batch_size x num_steps x num_motors)"""
-        bsize = observation.state.shape[0]
-        device = observation.state.device
-        num_steps = self.config.num_steps
-        if noise is None:
-            actions_shape = (bsize, self.config.action_horizon, self.config.action_dim)
-            noise = self.sample_noise(actions_shape, device)
-
-        images, img_masks, lang_tokens, lang_masks, state = self._preprocess_observation(observation, train=False)
-
-        prefix_embs, prefix_pad_masks, prefix_att_masks = self.embed_prefix(images, img_masks, lang_tokens, lang_masks)
-        prefix_att_2d_masks = make_att_2d_masks(prefix_pad_masks, prefix_att_masks)
-        prefix_position_ids = torch.cumsum(prefix_pad_masks, dim=1) - 1
-
-        # Compute image and language key value cache
-        prefix_att_2d_masks_4d = self._prepare_attention_masks_4d(prefix_att_2d_masks)
-        self.paligemma_with_expert.paligemma.language_model.config._attn_implementation = "eager"  # noqa: SLF001
-
-        _, past_key_values = self.paligemma_with_expert.forward(
-            attention_mask=prefix_att_2d_masks_4d,
-            position_ids=prefix_position_ids,
-            past_key_values=None,
-            inputs_embeds=[prefix_embs, None],
-            use_cache=True,
-        )
-
-        dt = -1.0 / num_steps
-        dt = torch.tensor(dt, dtype=torch.float32, device=device)
-
-        x_t = noise
-        time = torch.tensor(1.0, dtype=torch.float32, device=device)
-        while time >= -dt / 2:
-            expanded_time = time.expand(bsize)
-            v_t = self.denoise_step(
-                state,
-                prefix_pad_masks,
-                past_key_values,
-                x_t,
-                expanded_time,
-            )
-
-            # Euler step - use new tensor assignment instead of in-place operation
-            x_t = x_t + dt * v_t
-            time += dt
-        return {
-            "actions": x_t,
-            "chains": None,
-            "prev_logprobs": None,
-            "prev_values": None,
-            "denoise_inds": None,
         }
 
     def sample_mean_var_val(
