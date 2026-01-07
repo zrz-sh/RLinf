@@ -19,10 +19,10 @@
 </div>
 
 <h1 align="center">
-  <sub>RLinf: Reinforcement Learning Infrastructure for Post-training</sub>
+  <sub>RLinf: Reinforcement Learning Infrastructure for Embodied and Agentic AI</sub>
 </h1>
 
-RLinf is a flexible and scalable open-source infrastructure designed for post-training foundation models via reinforcement learning. The 'inf' in RLinf stands for `Infrastructure`, highlighting its role as a robust backbone for next-generation training. It also stands for `Infinite`, symbolizing the system’s support for open-ended learning, continuous generalization, and limitless possibilities in intelligence development.
+RLinf is a flexible and scalable open-source RL infrastructure designed for Embodied and Agentic AI. The 'inf' in RLinf stands for `Infrastructure`, highlighting its role as a robust backbone for next-generation training. It also stands for `Infinite`, symbolizing the system’s support for open-ended learning, continuous generalization, and limitless possibilities in intelligence development.
 
 <div align="center">
   <img src="docs/source-en/_static/svg/overview.svg" alt="RLinf-overview"/>
@@ -30,6 +30,7 @@ RLinf is a flexible and scalable open-source infrastructure designed for post-tr
 
 
 ## What's NEW!
+- [2025/12] 🔥 RLinf supports agentic reinforcement learning on [Search-R1](https://github.com/PeterGriffinJin/Search-R1). Doc: [Search-R1](https://rlinf.readthedocs.io/en/latest/rst_source/examples/searchr1.html).
 - [2025/12] 🔥 RLinf v0.2-pre is open-sourced. We support real-world RL with Franka. Doc: [RL on Franka in the RealWorld](https://rlinf.readthedocs.io/en/latest/rst_source/examples/franka.html).
 - [2025/12] 🔥 RLinf supports reinforcement learning fine-tuning for [RoboCasa](https://github.com/robocasa/robocasa). Doc: [RL on Robocasa](https://rlinf.readthedocs.io/en/latest/rst_source/examples/robocasa.html).
 - [2025/12] 🎉 RLinf official release of [v0.1](https://github.com/RLinf/RLinf/releases/tag/v0.1).
@@ -50,7 +51,7 @@ RLinf is a flexible and scalable open-source infrastructure designed for post-tr
 ## Key Features
 
 
-### Embodied Intelligence
+### Embodied AI
 
 <table style="width: 100%; table-layout: auto; border-collapse: collapse;">
   <thead align="center" valign="bottom">
@@ -127,15 +128,15 @@ RLinf is a flexible and scalable open-source infrastructure designed for post-tr
   </tbody>
 </table>
 
-### Agentic RL
+### Agentic AI
 
-Agentic RL includes both RL training for improving LLM reasoning ability, such as [Math Reasoning](https://rlinf.readthedocs.io/en/latest/rst_source/examples/reasoning.html), and RL training for Agents, for example, [RL training of coding agent](https://rlinf.readthedocs.io/en/latest/rst_source/examples/coding_online_rl.html). We believe embodied intelligence will also integrate the ability of agents in the future to complete complex tasks.
+We support RL training for improving reasoning ability, such as [Math Reasoning](https://rlinf.readthedocs.io/en/latest/rst_source/examples/reasoning.html), and RL training for improving coding ability, such as [Online Coder](https://rlinf.readthedocs.io/en/latest/rst_source/examples/coding_online_rl.html). We believe embodied AI will also integrate the ability of agents in the future to complete complex tasks.
 
 ### High flexibility, efficiency, and scalability
 
 Besides the rich functionalities introduced above, RLinf has high flexibility to support diverse RL training workflows (PPO, GRPO, SAC and so on), while hiding the complexity of distributed programming. Users can easily scale RL training to a large number of GPU nodes without modifying code, meeting the increasing demand of computation for RL training.
 
-The high flexibility allows RLinf to explore more efficient scheduling and execution. The hybrid execution mode for embodied RL achieves a **100%+** throughput improvement compared to baseline solutions.
+The high flexibility allows RLinf to explore more efficient scheduling and execution. The hybrid execution mode for embodied RL achieves up to **2.434×** throughput compared to existing frameworks.
 
 Multiple Backend Integrations
 

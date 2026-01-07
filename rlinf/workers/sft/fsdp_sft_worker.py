@@ -68,7 +68,7 @@ class FSDPSftWorker(FSDPModelManager, Worker):
         if SupportedModel(self.cfg.actor.model.model_type) in [SupportedModel.OPENPI]:
             import openpi.training.data_loader as openpi_data_loader
 
-            from rlinf.models.embodiment.openpi import get_openpi_config
+            from rlinf.models.embodiment.openpi.dataconfig import get_openpi_config
 
             config = get_openpi_config(
                 self.cfg.actor.model.openpi.config_name,
@@ -100,9 +100,6 @@ class FSDPSftWorker(FSDPModelManager, Worker):
                 % (self.cfg.actor.micro_batch_size * self._world_size)
                 == 0
             ), "global_batch_size is not divisible by micro_batch_size * world_size"
-            assert self.cfg.actor.micro_batch_size == 1, (
-                "micro_batch_size must be 1 for SFT, because we use lerobot data loader api"
-            )
 
             self.gradient_accumulation = (
                 self.cfg.actor.global_batch_size

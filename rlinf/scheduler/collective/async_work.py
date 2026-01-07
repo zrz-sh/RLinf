@@ -82,7 +82,6 @@ class AsyncFuncWork(AsyncWork):
         self._result = None
         self._next_work = None
         self._cuda_event = None
-        self._has_waited = False
 
     def __call__(self, future: Future):
         """Execute the function and set the done flag."""
@@ -124,10 +123,6 @@ class AsyncFuncWork(AsyncWork):
             Any: The result of the work if applicable, otherwise None.
 
         """
-        assert not self._has_waited, (
-            "AsyncFuncWork.async_wait() can only be called once"
-        )
-
         while not self._done.done():
             await asyncio.sleep(0.001)  # Yield control to the event loop
         if self._cuda_event is not None:
@@ -135,15 +130,9 @@ class AsyncFuncWork(AsyncWork):
         result = self._result
         if isinstance(result, AsyncWork):
             # If the result is another AsyncWork, wait for it to complete
-            final_result = result.wait()
+            return result.wait()
         else:
-            final_result = result
-
-        self._has_waited = True
-        self._result = None
-        self._cuda_event = None
-
-        return final_result
+            return result
 
     def wait(self):
         """Wait for the work to complete.
@@ -152,8 +141,6 @@ class AsyncFuncWork(AsyncWork):
             Any: The result of the work if applicable, otherwise None.
 
         """
-        assert not self._has_waited, "AsyncFuncWork.wait() can only be called once"
-
         while not self._done.done():
             time.sleep(0.001)
         if self._cuda_event is not None:
@@ -161,15 +148,9 @@ class AsyncFuncWork(AsyncWork):
         result = self._result
         if isinstance(result, AsyncWork):
             # If the result is another AsyncWork, wait for it to complete
-            final_result = result.wait()
+            return result.wait()
         else:
-            final_result = result
-
-        self._has_waited = True
-        self._result = None
-        self._cuda_event = None
-
-        return final_result
+            return result
 
     def done(self):
         """Query the completion state of the work."""
@@ -380,7 +361,12 @@ class AsyncChannelCommWork(AsyncWork):
     channel_data_store: dict[int, Future] = {}
     store_lock = threading.Lock()  # Protect store access
 
-    def __init__(self, async_comm_work: AsyncWork, query_id: int):
+    def __init__(
+        self,
+        async_comm_work: AsyncWork,
+        query_id: int,
+        channel_actor: ray.actor.ActorHandle,
+    ):
         """Initialize the AsyncChannelWork with a async recv comm of the get operation.
 
         A query_id should be provided to identify the data get query.
@@ -391,12 +377,14 @@ class AsyncChannelCommWork(AsyncWork):
         Args:
             async_comm_work (AsyncWork): The async communication work to wrap.
             query_id (int): The query ID to associate with the work.
+            channel_actor (ray.actor.ActorHandle): The actor handle for the channel.
 
         """
         self._async_comm_work = async_comm_work
         # The async_comm_work's value is not necessarily the data of the get query associated with the query_id
         # Only when the query_id's Future is set is the data available
         self._query_id = query_id
+        self._channel_actor = channel_actor
         with AsyncChannelCommWork.store_lock:
             if query_id not in AsyncChannelCommWork.channel_data_store:
                 AsyncChannelCommWork.channel_data_store[query_id] = Future()

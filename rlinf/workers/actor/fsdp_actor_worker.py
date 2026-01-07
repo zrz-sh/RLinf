@@ -181,6 +181,7 @@ class FSDPActor(FSDPModelManager, Worker):
         self.micro_batch_size = self.cfg.actor.micro_batch_size
         self.n_mini_batches = self.cfg.algorithm.n_minibatches
         self.task_type = self.cfg.runner.task_type
+        self.entropy_op_type = self.cfg.algorithm.get("entropy_op_type", "liger_kernel")
 
     def init_worker(self) -> None:
         """
@@ -360,7 +361,9 @@ class FSDPActor(FSDPModelManager, Worker):
         logits = logits / self.cfg.algorithm.sampling_params.temperature
 
         responses = input_ids[:, -self.response_len :]
-        logprobs = compute_logprobs_from_logits(logits, responses)
+        logprobs = compute_logprobs_from_logits(
+            logits=logits, target=responses, op_type=self.entropy_op_type
+        )
         return logprobs
 
     def run_inference(
@@ -470,7 +473,7 @@ class FSDPActor(FSDPModelManager, Worker):
             if "ref_logprobs" in m_batch:
                 ref_logprobs = m_batch["ref_logprobs"]
 
-            loss_mask = m_batch["attention_mask"][:, -self.response_len :]
+            loss_mask = m_batch["response_mask"][:, -self.response_len :]
 
             clip_ratio = self.cfg.algorithm.ratio_clip_eps
             clip_ratio_low = self.cfg.algorithm.get("clip_ratio_low", None)
@@ -500,7 +503,9 @@ class FSDPActor(FSDPModelManager, Worker):
                 logits = logits[
                     :, -self.response_len - 1 : -1, :
                 ]  # (bsz, response_length, vocab_size)
-                logprobs = compute_logprobs_from_logits(logits, responses)
+                logprobs = compute_logprobs_from_logits(
+                    logits, responses, self.entropy_op_type
+                )
 
                 if self.cfg.algorithm.get("importance_sampling_fix", False):
                     rollout_prev_logprobs = prev_logprobs
@@ -575,7 +580,7 @@ class FSDPActor(FSDPModelManager, Worker):
         if self.cfg.algorithm.normalize_advantages:
 
             def normalize_advantages(batch: dict[str, torch.Tensor]):
-                mask = batch["attention_mask"][:, -self.response_len :]
+                mask = batch["response_mask"][:, -self.response_len :]
                 batch["advantages"] = masked_normalization(batch["advantages"], mask)
                 return batch
 
@@ -634,7 +639,7 @@ class FSDPActor(FSDPModelManager, Worker):
         global_batch = self.compute_advantages_and_returns(global_batch)
 
         if self.cfg.algorithm.normalize_advantages:
-            mask = global_batch["attention_mask"][:, -self.response_len :]
+            mask = global_batch["response_mask"][:, -self.response_len :]
             global_batch["advantages"] = masked_normalization(
                 global_batch["advantages"], mask
             )
@@ -695,7 +700,7 @@ class FSDPActor(FSDPModelManager, Worker):
         """
         with self.worker_timer():
             if batch.get("advantages", None) is None:
-                mask = batch["attention_mask"][:, -self.response_len :]
+                mask = batch["response_mask"][:, -self.response_len :]
                 advantages, _ = calculate_adv_and_returns(
                     task_type=self.task_type,
                     adv_type=self.cfg.algorithm.adv_type,
@@ -732,6 +737,7 @@ class EmbodiedFSDPActor(FSDPModelManager, Worker):
         self.stage_num = cfg.rollout.pipeline_stage_num
 
         self.enable_offload = self.cfg.actor.get("enable_offload", False)
+        self.entropy_op_type = self.cfg.algorithm.get("entropy_op_type", "torch")
 
     def _setup_rollout_weight_dst_ranks(self) -> None:
         """
