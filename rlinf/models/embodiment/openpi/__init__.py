@@ -88,44 +88,9 @@ def get_model(cfg: DictConfig, torch_dtype=None):
             transforms.Unnormalize(
                 norm_stats, use_quantiles=data_config.use_quantile_norm
             ),
-            assets=AssetsConfig(assets_dir="checkpoints/torch/pi0_calvin/assets"),
-            extra_delta_transform=False,
-        ),
-        weight_loader=weight_loaders.CheckpointWeightLoader(
-            "checkpoints/jax/pi05_base/params"
-        ),
-        pytorch_weight_path="checkpoints/torch/pi05_base",
-        num_train_steps=30_000,
-    ),
-    TrainConfig(
-        name="pi0_robocasa",
-        model=pi0_config.Pi0Config(action_horizon=5),
-        data=LeRobotRobocasaDataConfig(
-            repo_id="RLinf/RLinf-Pi0-RoboCasa-OpenDrawer-Human-SFT",
-            base_config=DataConfig(prompt_from_task=True),
-            assets=AssetsConfig(assets_dir="assets", asset_id="assets/pi0_robocasa_opendrawer_pytorch_2views/ZhaoRunyi/robocasa_opendrawer_human_lerobot"),
-            extra_delta_transform=False,
-        ),
-        weight_loader=weight_loaders.CheckpointWeightLoader(
-            "checkpoints/jax/pi0_base/params"
-        ),
-        pytorch_weight_path="checkpoints/torch/pi0_base",
-        num_train_steps=30_000,
-    ),
-    TrainConfig(
-        name="pi0_custom",
-        model=pi0_config.Pi0Config(),
-        data=CustomDataConfig(
-            repo_id="physical-intelligence/custom_dataset",
-            base_config=DataConfig(
-                prompt_from_task=True
-            ),  # we need language instruction
-            assets=AssetsConfig(assets_dir="checkpoints/torch/pi0_base/assets"),
-            extra_delta_transform=False,  # True for delta action, False for abs_action
-            action_train_with_rotation_6d=False,  # User can add extra config in custom dataset
-        ),
-        pytorch_weight_path="checkpoints/torch/pi0_base",
-    ),
-]
+            *data_config.data_transforms.outputs,
+            *repack_transforms.outputs,
+        ],
+    )
 
     return model
