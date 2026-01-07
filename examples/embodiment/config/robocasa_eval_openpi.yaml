@@ -131,9 +131,9 @@ actor:
   # Override the default values in model/pi0
   model:
     model_path: "/path/to/model/pi0_robocasa_100demos_base_pytorch"  # Update this to your pi0 model path
-    num_action_chunks: 10 # interface for the env
+    num_action_chunks: 5 # action chunk length, action horzion
     action_dim: 12  # Pi0 outputs 32D, extract first 12D, then convert [5:12] to PandaOmron's 12D format
-    num_steps: 5
+    num_steps: 10 # denoise steps
     add_value_head: False
     # openpi specific parameters
     openpi:
