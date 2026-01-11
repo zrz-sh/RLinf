@@ -14,6 +14,7 @@
 
 import copy
 import gc
+import logging
 from typing import Any
 
 import torch
@@ -63,8 +64,12 @@ class MultiStepRolloutWorker(Worker):
             self.offload_model()
 
     def load_checkpoint(self, load_path):
-        model_dict = torch.load(load_path)
-        self.hf_model.load_state_dict(model_dict)
+        try:
+            model_dict = torch.load(load_path)
+            self.hf_model.load_state_dict(model_dict)
+        except Exception as e:
+            logging.warning("Failed to load checkpoint from %s: %s", load_path, e)
+            pass
 
     def setup_sample_params(self):
         # length parameters for rollout
