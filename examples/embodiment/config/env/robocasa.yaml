@@ -13,7 +13,7 @@ camera_names:
 task_names:
   # - OpenSingleDoor
   # - TurnOnSinkFaucet
-  - CloseDrawer
+  - OpenDrawer
 
 total_num_envs: null
 
