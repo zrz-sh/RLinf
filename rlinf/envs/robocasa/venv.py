@@ -67,6 +67,15 @@ def _worker(
         env_return[-1] = info
         env_return = tuple(env_return)
         return env_return
+    
+    def get_ep_meta(env, env_return):
+        ep_meta = env.get_ep_meta()
+        env_return = list(env_return)
+        info = env_return[-1]
+        info["ep_meta"] = ep_meta
+        env_return[-1] = info
+        env_return = tuple(env_return)
+        return env_return
 
     parent.close()
     env = env_fn_wrapper.data()
@@ -86,6 +95,9 @@ def _worker(
                 # RoboCasa step can't record success in info, _check_success() must be called 
                 if hasattr(env, "_check_success"):
                     env_return = _check_success(env, env_return)
+                # call get_ep_meta() to get the RoboCasa env meta, includes prompt & layout_id, etcs
+                if hasattr(env, "get_ep_meta"):
+                    env_return = get_ep_meta(env, env_return)
                 p.send(env_return)
             elif cmd == "reset":
                 # Robosuite reset can return just obs or (obs, info)
@@ -99,13 +111,15 @@ def _worker(
                     obs, info = retval
                 else:
                     obs = retval
+                    info = {}
                 if obs_bufs is not None:
                     _encode_obs(obs, obs_bufs)
                     obs = None
-                if reset_returns_info:
-                    p.send((obs, info))
-                else:
-                    p.send(obs)
+                # call get_ep_meta() to get the RoboCasa env meta, includes prompt & layout_id, etcs
+                if hasattr(env, "get_ep_meta"):
+                    info = get_ep_meta(env, (info,))[-1]
+                # return obs + info other than mere obs
+                p.send((obs, info))
             elif cmd == "close":
                 p.send(env.close())
                 p.close()
