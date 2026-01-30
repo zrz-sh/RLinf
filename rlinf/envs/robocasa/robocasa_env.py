@@ -61,7 +61,9 @@ class RobocasaEnv(gym.Env):
         self.num_tasks = len(self.task_names)
 
         # Task descriptions
-        self.task_descriptions_all = self._load_task_descriptions()
+        self.merge_prompt = cfg.get("merge_prompt", False)
+        if self.merge_prompt:
+            self.task_descriptions_all = self._load_task_descriptions()
 
         # Initialize reset state IDs for group_size repetition
         # Each unique scenario (num_group) will be repeated group_size times
@@ -261,7 +263,7 @@ class RobocasaEnv(gym.Env):
 
         Pi0 expects:
         - Two 128x128 images: robot0_agentview_left_image, robot0_eye_in_hand_image
-        - 16D state matching training data (padded to 32D internally by Pi0)
+        - 25D state matching training data (padded to 32D internally by Pi0)
 
         Based on dataset analysis and norm_stats.json, Pi0 expects 16D state:
         [0:3]   robot0_eef_pos (x, y, z) - 3D
@@ -310,16 +312,20 @@ class RobocasaEnv(gym.Env):
             "wrist_image": np.array(wrist_images),
             "state": np.array(states),
         }
+    
+    def _extract_task_description(self, info_list):
+        return [info.get("ep_meta", {}).get("lang", "") for info in info_list]
 
-    def _wrap_obs(self, obs_list):
-        extracted = self._extract_image_and_state(obs_list)
+    def _wrap_obs(self, obs_list, info_list):
+        extracted_obs = self._extract_image_and_state(obs_list)
+        task_description_list = self._extract_task_description(info_list)
 
         images_and_states_list = []
         for idx in range(self.num_envs):
             images_and_states = {
-                "base_image": extracted["base_image"][idx],
-                "wrist_image": extracted["wrist_image"][idx],
-                "state": extracted["state"][idx],
+                "base_image": extracted_obs["base_image"][idx],
+                "wrist_image": extracted_obs["wrist_image"][idx],
+                "state": extracted_obs["state"][idx],
             }
             images_and_states_list.append(images_and_states)
 
@@ -344,7 +350,7 @@ class RobocasaEnv(gym.Env):
             "states": states,
             "task_descriptions": [
                 self.task_descriptions_all[task_id] for task_id in self.task_ids
-            ],
+            ] if self.merge_prompt else task_description_list,
         }
         return obs
 
@@ -361,9 +367,9 @@ class RobocasaEnv(gym.Env):
 
         # Reset using vectorized environment (subprocess isolation avoids OpenGL issues)
         # Use libero's SubprocVectorEnv reset interface
-        raw_obs = self.env.reset(id=env_idx)
+        raw_obs, info_list = self.env.reset(id=env_idx)
 
-        obs = self._wrap_obs(raw_obs)
+        obs = self._wrap_obs(raw_obs, info_list)
         self._reset_metrics(env_idx)
         infos = {}
         return obs, infos
@@ -402,7 +408,8 @@ class RobocasaEnv(gym.Env):
             [info.get("success", False) for info in info_lists]
         ).astype(bool)
         truncations = self._elapsed_steps >= self.cfg.max_episode_steps
-        obs = self._wrap_obs(raw_obs)
+        obs = self._wrap_obs(raw_obs, info_lists)
+        task_description_list = self._extract_task_description(info_lists)
 
         step_reward = self._calc_step_reward(terminations)
 
@@ -412,7 +419,7 @@ class RobocasaEnv(gym.Env):
                 "terminations": terminations,
                 "task": [
                     self.task_descriptions_all[task_id] for task_id in self.task_ids
-                ],
+                ] if self.merge_prompt else task_description_list
             }
             self.add_new_frames(raw_obs, plot_infos)
 

@@ -3,6 +3,9 @@ env_type: robocasa
 # Robot configuration
 robot_name: PandaOmron
 
+# Use the pre-defined merge prompt (1 promt for 1 env) or not
+merge_prompt: false
+
 # Camera configuration
 # Pi0 model uses two 128x128 cameras: left view and wrist view
 camera_names:
